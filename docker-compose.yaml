@@ -1,0 +1,42 @@
+services:
+  phantom-service:
+    build: ./
+    ports:
+      - '5001:5001'
+    depends_on:
+      phantom-db:
+        condition: service_healthy
+    volumes:
+      - ./:/app/
+    environment:
+      FLASK_APP: app
+      FLASK_ENV: development
+    env_file: .env
+    networks:
+      - phantom-network
+
+  phantom-db:
+    image: mysql
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${DB_NAME}
+      MYSQL_USER: ${DB_USER}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+    ports:
+      - '3306:3306'
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ['CMD', 'mysqladmin', 'ping', '-h', 'localhost']
+      timeout: 20s
+      retries: 10
+    networks:
+      - phantom-network
+
+networks:
+  phantom-network:
+    driver: bridge
+
+volumes:
+  mysql_data:

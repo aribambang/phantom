@@ -1,0 +1,46 @@
+services:
+  phantom-service-test:
+    build:
+      context: ..
+      dockerfile: tests/Dockerfile
+    command: /bin/sh -c "pytest -k "_test.py" --cov && pytest -k "_test_e2e.py" --cov --cov-report term-missing"
+    ports:
+      - '5001:5001'
+    depends_on:
+      phantom-db-test:
+        condition: service_healthy
+    volumes:
+      - ../:/app/
+    environment:
+      FLASK_APP: app
+      FLASK_ENV: testing
+    env_file: test.env
+    networks:
+      - phantom-network-test
+
+  phantom-db-test:
+    image: mysql
+    restart: always
+    env_file: test.env
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${DB_NAME}
+      MYSQL_USER: ${DB_USER}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+    ports:
+      - '3306:3306'
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ['CMD', 'mysqladmin', 'ping', '-h', 'localhost']
+      timeout: 20s
+      retries: 10
+    networks:
+      - phantom-network-test
+
+networks:
+  phantom-network-test:
+    driver: bridge
+
+volumes:
+  mysql_data:
